@@ -31,7 +31,7 @@ const int trigPin = 9;
 const int echoPin = 10;
 
 
-Adafruit_PN532 nfc(SDA_PIN, SCL_PIN);  // Initialize PN532 with I2C
+//Adafruit_PN532 nfc(SDA_PIN, SCL_PIN);  // Initialize PN532 with I2C
 
 
 // variables
@@ -93,11 +93,6 @@ void loop() {
   String dataString = "";
 
 
-  // open the file. note that only one file can be open at a time,
-  // so you have to close this one before opening another.
-  File dataFile = SD.open("datalog.txt", FILE_WRITE);
-
-
   // Clears the trigPin
   digitalWrite(trigPin, LOW);
   delayMicroseconds(4);
@@ -109,36 +104,28 @@ void loop() {
   duration = pulseIn(echoPin, HIGH);
   // Calculating the distance
   distance = duration * 0.034 / 2;
-  // Prints the distance on the Serial Monitor
+
+  // open the file. note that only one file can be open at a time,
+  // so you have to close this one before opening another.
+  File dataFile = SD.open("datalog.txt", FILE_WRITE);
+  
   if (distance < baseline){
     if (!batDetected){
     batDetected = true;
     batTally += 1;
     dataString += "Bat Detected. Bat count: \n" + String(batTally);
-    Serial.println(dataString);
 
-     // if the file is available, write to it:
-    if (dataFile.available()) {
-      dataFile.println(dataString);
-      // print to the serial port too:
-      Serial.println(dataString);
-
-
-      /* REMOVE COMMENT (NFC)
-      if (sendNFCMessage(dataString)) {
-        Serial.println("Sent: " + dataString);
-      } else {
-        Serial.println("Failed to send: " + dataString);
+      // if the file is available, write to it:
+      if (dataFile) {
+        dataFile.println(dataString);
+        dataFile.close();
+        // print to the serial port too:
+        Serial.println(dataString);
       }
-      delay(500); // Adjust delay as needed
-      */
-
-
-    }
-    // if the file isn't open, pop up an error:
-    else {
-    Serial.println("error opening datalog.txt");
-    }
+      // if the file isn't open, pop up an error:
+      else {
+      Serial.println("error opening datalog.txt");
+      }
     }
   }
   else {
@@ -151,19 +138,6 @@ void loop() {
   dataFile.println(distance);
 
   delay(50); // small delay for reading stability
-
-
-
-  // close .txt file upon request
-  if (Serial.available() > 0){
-    // read incoming byte
-    incomingByte = Serial.read();
-
-
-    if (incomingByte == 7){
-      dataFile.close();
-    }
-  }
 }
 
 
