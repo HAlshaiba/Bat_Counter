@@ -39,7 +39,7 @@ void loop() {
   }
 
   // Read and send each line as an NFC message
-  while (trackerFile.available()) {
+  while (trackerFile) {
     String logEntry = trackerFile.readStringUntil('\n');
     if (sendNFCMessage(logEntry)) {
       Serial.println("Sent: " + logEntry);
