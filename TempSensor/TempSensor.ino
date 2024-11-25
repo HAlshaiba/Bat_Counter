@@ -66,7 +66,7 @@ void loop(){
 
 
 
-    float h = dht.readHumidity();
+  float h = dht.readHumidity();
   // Read temperature as Celsius
   float t = dht.readTemperature();
 
