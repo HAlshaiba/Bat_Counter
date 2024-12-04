@@ -1,4 +1,4 @@
-// The following are installed libraries, except for <Wire.h>
+// The following are installed libraries, except for <Wire.h> and <SPI.h>
 #include <DHT.h>
 #include <RTCZero.h>
 #include <SD.h>
