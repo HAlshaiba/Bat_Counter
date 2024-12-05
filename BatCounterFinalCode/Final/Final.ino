@@ -1,12 +1,12 @@
-// The following are installed libraries, except for <Wire.h>
+// The following are libraries need to be installed, except for <Wire.h> and <SPI.h>
 #include <DHT.h>
 #include <RTCZero.h>
 #include <SD.h>
 #include <SPI.h>
 #include <Wire.h>
 
-#define OUTER 5
-#define INNER 4
+#define OUTER 4
+#define INNER 5
 #define EXIT 3 
 #define BUTTON_PIN 2
 #define DHTPIN A0
@@ -56,9 +56,9 @@ void setup() {
   
   dht.begin();
   
-  //while (!Serial) {
-    //; // Wait for Serial port to connect (Native USB)
-  //}
+  while (!Serial) {
+    ; // Wait for Serial port to connect (Native USB)
+  }
   
 
   Serial.print("Initializing SD card...");
@@ -85,53 +85,29 @@ void loop() {
   }
 }
 
-bool prevOUTERState = false; // Previous state of OUTER sensor
-bool prevINNERState = false; // Previous state of INNER sensor
-bool prevEXITState = false;  // Previous state of EXIT sensor
-
 void checkSensors() {
-  // Read current sensor states
+  // Read sensor states
   bool OUTERState = digitalRead(OUTER) == LOW;
   bool INNERState = digitalRead(INNER) == LOW;
   bool EXITState = digitalRead(EXIT) == LOW;
 
-  // OUTER sensor logic
-  if (OUTERState && !prevOUTERState) { // Triggered only on state change
-    Serial.println("Sensor 1 triggered");
-    currentState = OUTER_TRIGGERED;
-  }
-
-  // INNER sensor logic
-  if (INNERState && !prevINNERState) { // Triggered only on state change
-    Serial.println("Sensor 2 triggered");
-    currentState = INNER_TRIGGERED;
-  }
-
-  // EXIT sensor logic
-  if (EXITState && !prevEXITState) { // Triggered only on state change
-    if (!batDetectedS3) {
-      batDetectedS3 = true;
-      batTally--;
-      exits++;
-      Serial.println("Bat exited");
-    }
-  } else if (!EXITState) {
-    batDetectedS3 = false; // Reset when sensor is untriggered
-  }
-
-  // Update previous states
-  prevOUTERState = OUTERState;
-  prevINNERState = INNERState;
-  prevEXITState = EXITState;
-
-  // FSM logic for OUTER and INNER
   switch (currentState) {
+    case IDLE:
+      if (OUTERState && !INNERState) {
+        Serial.println("Sensor 1 triggered");
+        currentState = OUTER_TRIGGERED; // Bat starts entering
+      } else if (INNERState && !OUTERState) {
+        Serial.println("Sensor 2 triggered");
+        currentState = INNER_TRIGGERED; // Bat starts exiting
+      }
+      break;
+
     case OUTER_TRIGGERED:
       if (INNERState) {
         batTally++;
         entries++;
         Serial.println("Bat entered");
-        currentState = IDLE; // Reset to IDLE after valid entry
+        currentState = IDLE; // Reset to idle after valid entry
       } else if (!OUTERState) {
         currentState = IDLE; // Reset if OUTER is no longer blocked
       }
@@ -142,17 +118,25 @@ void checkSensors() {
         batTally--;
         exits++;
         Serial.println("Bat exited");
-        currentState = IDLE; // Reset to IDLE after valid exit
+        currentState = IDLE; // Reset to idle after valid exit
       } else if (!INNERState) {
         currentState = IDLE; // Reset if INNER is no longer blocked
       }
       break;
-
-    default:
-      break;
+  }
+  if (EXITState) {
+    if (!batDetectedS3){
+    batDetectedS3 = true;
+    batTally--;
+    exits++;
+    Serial.println("Bat exited");
+    }
+  }
+  else {
+    batDetectedS3 = false;
+    currentState = IDLE; // Reset to idle after valid exit
   }
 }
-
 
 void logData() {
   File dataFile = SD.open("bat_data.txt", FILE_WRITE);
@@ -208,7 +192,5 @@ void readTemp(){
   return;
   }
   dataString += "Humidity: "+ String(h) + "%\t" ;
-  dataString += "Temperature: " + String(t) + " Degrees Celsius\n";
-  
+  dataString += "Temperature: " + String(t) + "°C\n";
 }
-
